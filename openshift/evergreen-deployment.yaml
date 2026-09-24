@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evergreen-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: evergreen-service
+  template:
+    metadata:
+      labels:
+        app: evergreen-service
+    spec:
+      containers:
+        - name: bloom-shop
+          image: BLOOM_IMAGE
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: evergreen-service
+spec:
+  selector:
+    app: evergreen-service
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: evergreen-service
+spec:
+  to:
+    kind: Service
+    name: evergreen-service
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge

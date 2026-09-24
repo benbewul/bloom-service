@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bloom Flower Shop</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="#">Bloom <span>🌸</span></a>
+    <button class="cart-pill" onclick="openCart()">Sepet <b id="cartCount">0</b></button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">BLOOM FLOWER SHOP</p>
+        <h1>Biraz çiçek,<br><em>biraz mutluluk.</em></h1>
+        <p class="hero-copy">Lilyumdan laleye, sevdiğin çiçekleri seç. Bloom onları senin için zarifçe hazırlasın.</p>
+        <a href="#flowers" class="primary">Çiçekleri keşfet</a>
+      </div>
+      <div class="hero-photo" aria-label="Bloom çiçek buketi"><div class="hero-badge">Taze çiçekler • aynı gün mutluluk</div></div>
+    </section>
+
+    <section class="section" id="flowers">
+      <div class="section-title">
+        <div><p class="eyebrow">BUGÜNÜN SEÇKİSİ</p><h2>Sen hangisini seçerdin?</h2></div>
+        <p>Taze, sade ve sevgiyle hazırlanmış buketler.</p>
+      </div>
+      <div class="grid">
+        {% for flower in flowers %}
+        <article class="card">
+          <div class="flower-photo"><img src="{{ flower.image }}" alt="{{ flower.name }}" loading="lazy"></div>
+          <div class="card-body">
+            <h3>{{ flower.name }}</h3>
+            <p>{{ flower.description }}</p>
+            <div class="card-foot">
+              <strong>{{ "{:,.0f}".format(flower.price).replace(',', '.') }} TL</strong>
+              <button onclick="addToCart({{ flower.id }}, '{{ flower.name|e }}', {{ flower.price }})">Sepete ekle</button>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <footer class="note">
+      <span>🌸</span>
+      <div><b>Bloom Flowers</b><p>Taze çiçekler, güzel anlar. · © 2026 Bloom Flowers</p></div>
+    </footer>
+  </main>
+
+  <div class="drawer" id="drawer" onclick="closeIfBackdrop(event)">
+    <aside>
+      <div class="drawer-head"><div><p class="eyebrow">BLOOM</p><h2>Sepetin 🌸</h2></div><button class="close" onclick="closeCart()">×</button></div>
+      <div id="cartItems" class="cart-items"></div>
+      <div class="cart-bottom">
+        <div class="total"><span>Toplam</span><strong id="cartTotal">0 TL</strong></div>
+        <button class="checkout" id="checkoutBtn" onclick="checkout()">Siparişi tamamla</button>
+        <p class="result" id="result"></p>
+      </div>
+    </aside>
+  </div>
+
+<script>
+const cart = {};
+function money(n){ return new Intl.NumberFormat('tr-TR').format(n) + ' TL'; }
+function addToCart(id,name,price){
+  if(!cart[id]) cart[id]={id,name,price,qty:0};
+  cart[id].qty++;
+  renderCart(); openCart();
+}
+function changeQty(id,delta){ cart[id].qty += delta; if(cart[id].qty<=0) delete cart[id]; renderCart(); }
+function renderCart(){
+  const items=Object.values(cart), count=items.reduce((s,x)=>s+x.qty,0), total=items.reduce((s,x)=>s+x.qty*x.price,0);
+  document.getElementById('cartCount').textContent=count;
+  document.getElementById('cartTotal').textContent=money(total);
+  document.getElementById('cartItems').innerHTML = items.length ? items.map(x=>`<div class="cart-row"><div><b>${x.name}</b><small>${money(x.price)}</small></div><div class="qty"><button onclick="changeQty(${x.id},-1)">−</button><span>${x.qty}</span><button onclick="changeQty(${x.id},1)">+</button></div></div>`).join('') : '<div class="empty">Sepetin şimdilik boş 🌷</div>';
+  document.getElementById('checkoutBtn').disabled=!items.length;
+}
+function openCart(){document.getElementById('drawer').classList.add('open')}
+function closeCart(){document.getElementById('drawer').classList.remove('open')}
+function closeIfBackdrop(e){if(e.target.id==='drawer') closeCart()}
+async function checkout(){
+  const btn=document.getElementById('checkoutBtn'), result=document.getElementById('result');
+  btn.disabled=true; btn.textContent='Hazırlanıyor...'; result.textContent='';
+  try{
+    const r=await fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:Object.values(cart).map(x=>({id:x.id,qty:x.qty}))})});
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.message || 'Sipariş oluşturulamadı');
+    Object.keys(cart).forEach(k=>delete cart[k]); renderCart();
+    result.textContent=`${data.message} Sipariş: ${data.orderId}`;
+  }catch(e){ result.textContent=e.message; }
+  finally{btn.textContent='Siparişi tamamla'; renderCart();}
+}
+renderCart();
+</script>
+</body>
+</html>
