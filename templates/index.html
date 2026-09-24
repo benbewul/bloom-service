@@ -90,7 +90,7 @@ async function checkout(){
     const data=await r.json();
     if(!r.ok) throw new Error(data.message || 'Sipariş oluşturulamadı');
     Object.keys(cart).forEach(k=>delete cart[k]); renderCart();
-    result.textContent=`${data.message} Sipariş: ${data.orderId}`;
+    result.innerHTML=`<span class="success-title">Siparişiniz alındı</span><br>Sipariş No: <b>${data.orderId}</b><br>Toplam: <b>${money(data.total)}</b><br><small>Buketiniz hazırlanmak üzere Bloom ekibine iletildi.</small>`;
   }catch(e){ result.textContent=e.message; }
   finally{btn.textContent='Siparişi tamamla'; renderCart();}
 }
